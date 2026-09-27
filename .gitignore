@@ -4,7 +4,9 @@ node_modules/
 .env.*
 !.env.example
 .next/
+*.tsbuildinfo
 dist/
+apps/backend/src/generated/prisma/
 coverage/
 *.log
 .DS_Store
@@ -15,3 +17,7 @@ infra/data/
 # editor
 .vscode/
 .idea/
+
+# package managers
+package-lock.json
+yarn.lock

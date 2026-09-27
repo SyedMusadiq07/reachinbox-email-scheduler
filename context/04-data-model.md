@@ -16,7 +16,10 @@
 - userId
 - email
 - displayName
-- Ethereal credential/config reference
+- smtpHost
+- smtpPort
+- smtpUsernameEncrypted
+- smtpPasswordEncrypted
 - active
 - createdAt
 - updatedAt
@@ -30,6 +33,8 @@
 - startTime
 - delayMs
 - hourlyLimit
+- idempotencyKey (unique per user when supplied by the schedule API)
+- requestHash (canonical request hash used to reject key reuse with different input)
 - createdAt
 - updatedAt
 
@@ -69,7 +74,8 @@ Statuses:
 - teamName
 - channelId
 - channelName
-- webhookUrl (stored securely; never exposed to browser)
+- encrypted webhook URL ciphertext (never exposed to browser)
+- encrypted OAuth access token ciphertext when available (never exposed to browser)
 - connectedAt
 - disconnectedAt
 - updatedAt

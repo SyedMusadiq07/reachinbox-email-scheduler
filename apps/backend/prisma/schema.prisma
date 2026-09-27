@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EmailJobStatus {
+  scheduled
+  processing
+  sent
+  failed
+}
+
+model User {
+  id               String            @id @default(cuid())
+  googleId         String            @unique
+  name             String
+  email            String            @unique
+  avatarUrl        String?
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  senders          Sender[]
+  campaigns        Campaign[]
+  slackIntegration SlackIntegration?
+
+  @@map("users")
+}
+
+model Sender {
+  id               String      @id @default(cuid())
+  userId           String
+  email            String
+  displayName      String?
+  smtpHost         String
+  smtpPort         Int
+  smtpUsernameEncrypted String @db.Text
+  smtpPasswordEncrypted String @db.Text
+  active           Boolean     @default(true)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns        Campaign[]
+  emailJobs        EmailJob[]
+
+  @@unique([userId, email])
+  @@index([userId, active])
+  @@map("senders")
+}
+
+model Campaign {
+  id               String     @id @default(cuid())
+  userId           String
+  senderId         String
+  subject          String
+  body             String     @db.Text
+  startTime        DateTime   @db.Timestamptz(3)
+  delayMs          Int
+  hourlyLimit      Int
+  idempotencyKey   String?    @db.VarChar(255)
+  requestHash      String?    @db.Char(64)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sender           Sender     @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  emailJobs        EmailJob[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("campaigns")
+}
+
+model EmailJob {
+  id                String         @id @default(cuid())
+  campaignId        String
+  senderId          String
+  recipientEmail    String
+  subject           String
+  body              String         @db.Text
+  sequenceNumber    Int
+  scheduledAt       DateTime       @db.Timestamptz(3)
+  sentAt            DateTime?      @db.Timestamptz(3)
+  status            EmailJobStatus @default(scheduled)
+  attempts          Int            @default(0)
+  bullJobId         String?        @unique
+  providerMessageId String?        @unique
+  lastError         String?        @db.Text
+  createdAt         DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(3)
+  campaign          Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sender            Sender         @relation(fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@unique([campaignId, sequenceNumber])
+  @@index([status, scheduledAt])
+  @@index([senderId, status, scheduledAt])
+  @@index([campaignId, sequenceNumber])
+  @@map("email_jobs")
+}
+
+model SlackIntegration {
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  teamId                 String
+  teamName               String
+  channelId              String
+  channelName            String
+  webhookUrlEncrypted    String    @db.Text
+  accessTokenEncrypted   String?   @db.Text
+  connectedAt            DateTime  @default(now()) @db.Timestamptz(3)
+  disconnectedAt         DateTime? @db.Timestamptz(3)
+  updatedAt              DateTime  @updatedAt @db.Timestamptz(3)
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, channelId])
+  @@map("slack_integrations")
+}

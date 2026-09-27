@@ -103,3 +103,11 @@ Status: LOCKED
 Decision: Support multiple senders in the backend, and expose the sender in the compose flow because the supplied Figma shows a `From` selector. Sender creation/management UI is not added unless the assignment/Figma requires it.
 
 Status: LOCKED
+
+## D017 — Schedule request idempotency
+
+Decision: The schedule API requires an `Idempotency-Key` per user and stores it with a canonical request hash on Campaign. Repeated matching requests reuse the same recipient-level EmailJobs and deterministic BullMQ IDs; reusing a key with different input returns a conflict. Retrying a request can therefore restore missing queue entries without a separate outbox service.
+
+Reason: PostgreSQL and Redis cannot share an atomic transaction, and the assignment requires repeated scheduling requests not to create duplicate logical work.
+
+Status: LOCKED
